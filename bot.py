@@ -1,9 +1,12 @@
 import asyncio
+import os
+import threading
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram import executor
+from flask import Flask
 
-API_TOKEN = '8989473524:AAG7IBFUDtmYNkQto4tGLFA2H9yEVzC_Z8E'
+API_TOKEN = 'ТВОЙ_ТОКЕН'
 ADMIN_ID = 8515021528  # твой Telegram ID
 
 bot = Bot(token=API_TOKEN)
@@ -209,8 +212,23 @@ async def other(callback: types.CallbackQuery):
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_back_keyboard(), disable_web_page_preview=True)
     await callback.answer()
 
+# ------------------- Flask сервер (нужен Render, чтобы видеть открытый порт) -------------------
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return "Bot is running", 200
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
 # ------------------- Запуск -------------------
 if __name__ == '__main__':
+    # Flask в отдельном потоке — держит порт открытым для Render
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    # Бот в основном потоке
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     executor.start_polling(dp, skip_updates=True, loop=loop)
